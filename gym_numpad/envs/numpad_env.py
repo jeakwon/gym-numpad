@@ -77,7 +77,7 @@ class NumPadEnv(gym.Env):
         self.seed(seed)
         low, high = 0, len(self.vacant_zones)
         if self.init_pos == None:
-            self.pos = self.vacant_zones[int(self.np_random.integers(low, high, 1))]
+            self.pos = self.vacant_zones[int(self.np_random.randint(low, high, 1))]
         else:
             self.pos = self.init_pos
         self._init_pos = self.pos
