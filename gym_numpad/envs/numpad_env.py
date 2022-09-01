@@ -74,7 +74,8 @@ class NumPadEnv(gym.Env):
         return self.state, reward, terminated, False, {}
 
     def reset(self, *, seed: Optional[int] = None, options: Optional[dict] = None):
-        super().reset(seed=seed)
+        super().reset()
+        self.seed(seed)
         low, high = 0, len(self.vacant_zones)
         if self.init_pos == None:
             self.pos = self.vacant_zones[int(self.np_random.integers(low, high, 1))]
