@@ -6,8 +6,7 @@ import numpy as np
 import gym
 from gym import spaces
 from gym.error import DependencyNotInstalled
-from gym.utils.renderer import Renderer
-
+from gym_numpad.envs.renderer import Renderer
 
 class NumPadEnv(gym.Env):
     metadata = {
