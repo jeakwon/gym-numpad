@@ -71,7 +71,7 @@ class NumPadEnv(gym.Env):
             terminated = True
 
         self.renderer.render_step()
-        return np.array(self.state), reward, terminated, False, {}
+        return np.array(self.state), reward, terminated, {}
 
     def reset(self, *, seed: Optional[int] = None, options: Optional[dict] = None):
         self.seed(seed)
