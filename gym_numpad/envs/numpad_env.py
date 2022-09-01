@@ -5,8 +5,10 @@ import numpy as np
 
 import gym
 from gym import spaces
+from gym.utils import seeding
 from gym.error import DependencyNotInstalled
 from gym_numpad.envs.renderer import Renderer
+
 
 class NumPadEnv(gym.Env):
     metadata = {
@@ -40,6 +42,10 @@ class NumPadEnv(gym.Env):
         self.action_space = spaces.Discrete(5)
         self.observation_space = spaces.Discrete(len(cues))
 
+    def seed(self, seed=None):
+        self.np_random, seed = seeding.np_random(seed)
+        return [seed]
+        
     def step(self, action:int): 
         assert self.action_space.contains(
             action
