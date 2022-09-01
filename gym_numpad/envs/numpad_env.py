@@ -5,7 +5,6 @@ import numpy as np
 
 import gym
 from gym import spaces
-from gym.envs.classic_control import utils
 from gym.error import DependencyNotInstalled
 from gym.utils.renderer import Renderer
 
@@ -70,7 +69,7 @@ class NumPadEnv(gym.Env):
 
     def reset(self, *, seed: Optional[int] = None, options: Optional[dict] = None):
         super().reset(seed=seed)
-        low, high = utils.maybe_parse_reset_bounds(options, 0, len(self.vacant_zones))
+        low, high = 0, len(self.vacant_zones)
         if self.init_pos == None:
             self.pos = self.vacant_zones[int(self.np_random.integers(low, high, 1))]
         else:
