@@ -38,9 +38,10 @@ class NumPadEnv(gym.Env):
         self.screen = None
         self.clock = None
         self.isopen = True
-
+        
         self.action_space = spaces.Discrete(5)
         self.observation_space = spaces.Discrete(len(cues))
+        self.seed()
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
