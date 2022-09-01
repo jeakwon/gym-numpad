@@ -181,15 +181,15 @@ class NumPadEnv(gym.Env):
 
 class NumPad2x2(NumPadEnv):
     def __init__(self, render_mode=None):
-        super().__init__(render_mode=render_mode, size=2, cues=['a', 'b', 'c', 'd'], init_pos=None)
+        super().__init__(render_mode=render_mode, size=2, cues=[11, 22, 33, 44], init_pos=None)
 
 class NumPad3x3(NumPadEnv):
     def __init__(self, render_mode=None):
-        super().__init__(render_mode=render_mode, size=3, cues=['a', 'b', 'c', 'd', 'e', 'f'], init_pos=None)
+        super().__init__(render_mode=render_mode, size=3, cues=[11, 22, 33, 44, 55, 66], init_pos=None)
 
 class NumPad4x4(NumPadEnv):
     def __init__(self, render_mode=None):
-        super().__init__(render_mode=render_mode, size=4, cues=['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'], init_pos=None)
+        super().__init__(render_mode=render_mode, size=4, cues=[11, 22, 33, 44, 55, 66, 77, 88], init_pos=None)
 
 if __name__ == "__main__":
     env = NumPad2x2('human')
