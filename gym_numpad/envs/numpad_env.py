@@ -16,6 +16,7 @@ class NumPadEnv(gym.Env):
         "render_fps": 50,
     }
     def __init__(self, render_mode: Optional[str] = None, size=2, cues=['a', 'b', 'c', 'd', 'e'], init_pos=[0, 0]):
+        self.seed()
         self.size = 2*size+1
         self.cues = cues
         self.init_pos = init_pos
@@ -41,8 +42,7 @@ class NumPadEnv(gym.Env):
         
         self.action_space = spaces.Discrete(5)
         self.observation_space = spaces.Discrete(len(cues))
-        self.seed()
-
+        
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
