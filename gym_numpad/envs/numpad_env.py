@@ -200,7 +200,7 @@ if __name__ == "__main__":
         for t in range(1000):
             env.render()
             action = env.action_space.sample()
-            observation, reward, done, _, _ = env.step(action)
+            observation, reward, done, info = env.step(action)
             print(action, observation, reward)
             score+=reward
             if done:
