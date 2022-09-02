@@ -1,4 +1,5 @@
 import math
+from copy import deepcopy
 from typing import Optional
 
 import numpy as np
@@ -24,7 +25,7 @@ class NumPadEnv(gym.Env):
         self.MAX = self.size-1
         self.reward_zones = []
         self.vacant_zones = []
-        self._reward_seqs = self.np_random.permutation(self.reward_zones)
+        self._reward_seqs = self.np_random.permutation(self.reward_zones).tolist()
         for i in range(self.size):
             for j in range(self.size):
                 if (i%2==1)&(j%2==1):
@@ -85,7 +86,7 @@ class NumPadEnv(gym.Env):
             self.pos = self.init_pos
         self._init_pos = self.pos
         self.state = self.cues[self.Q[self.pos[0], self.pos[1]]]
-        self.reward_seqs = self._reward_seqs.copy().tolist()
+        self.reward_seqs = deepcopy(self._reward_seqs)
         self.renderer.reset()
         self.renderer.render_step()
         return np.array([self.state])
