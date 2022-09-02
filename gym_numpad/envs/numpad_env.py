@@ -40,8 +40,10 @@ class NumPadEnv(gym.Env):
         self.clock = None
         self.isopen = True
         
+        low = np.array([0])
+        high = np.array([len(cues)])
         self.action_space = spaces.Discrete(5)
-        self.observation_space = spaces.Discrete(1)
+        self.observation_space = spaces.Box(low, high, dtype=np.int32)
         
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
