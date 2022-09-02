@@ -16,7 +16,6 @@ class NumPadEnv(gym.Env):
         "render_fps": 50,
     }
     def __init__(self, render_mode: Optional[str] = None, size=2, cues=['a', 'b', 'c', 'd', 'e'], init_pos=[0, 0], seed=0):
-        self.map_id=map_id
         self.seed(seed)
         self.size = 2*size+1
         self.cues = cues
