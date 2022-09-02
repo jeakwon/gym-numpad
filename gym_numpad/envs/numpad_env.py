@@ -149,7 +149,7 @@ class NumPadEnv(gym.Env):
         for i in range(self.size):
             for j in range(self.size):
                 font = pygame.font.SysFont("arial", int(L/3), bold=False)
-                text = font.render(' '+self.cues[self.Q[i, j]], False, [255, 255, 255])
+                text = font.render(f' {self.cues[self.Q[i, j]]}', False, [255, 255, 255])
                 self.screen.blit(text, [i*L, j*L])
 
         # show reward sequence
