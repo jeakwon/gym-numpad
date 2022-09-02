@@ -1,5 +1,4 @@
 import math
-from copy import deepcopy
 from typing import Optional
 
 import numpy as np
@@ -25,13 +24,13 @@ class NumPadEnv(gym.Env):
         self.MAX = self.size-1
         self.reward_zones = []
         self.vacant_zones = []
-        self._reward_seqs = self.np_random.permutation(self.reward_zones).tolist()
         for i in range(self.size):
             for j in range(self.size):
                 if (i%2==1)&(j%2==1):
                     self.reward_zones.append([i, j])
                 else:
                     self.vacant_zones.append([i, j])
+        self._reward_seqs = self.np_random.permutation(self.reward_zones)
         self.Q = self.np_random.choice(range(len(cues)), (self.size, self.size))
 
         self.render_mode = render_mode
@@ -86,7 +85,7 @@ class NumPadEnv(gym.Env):
             self.pos = self.init_pos
         self._init_pos = self.pos
         self.state = self.cues[self.Q[self.pos[0], self.pos[1]]]
-        self.reward_seqs = deepcopy(self._reward_seqs)
+        self.reward_seqs = self._reward_seqs.copy().tolist()
         self.renderer.reset()
         self.renderer.render_step()
         return np.array([self.state])
@@ -212,10 +211,10 @@ if __name__ == "__main__":
     env = NumPad2x2('human')
     for episode in range(30):
         env.reset(seed=episode)
-        env.action_space.seed(episode)
+        # env.action_space.seed(episode)
         score = 0
         for t in range(1000):
-            env.render()
+            env.render(mode='human')
             action = env.action_space.sample()
             observation, reward, done, info = env.step(action)
             print(action, observation, reward)
