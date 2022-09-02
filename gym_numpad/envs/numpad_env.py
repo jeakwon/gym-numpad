@@ -87,7 +87,7 @@ class NumPadEnv(gym.Env):
         self.reward_seqs = self.np_random.permutation(self.reward_zones).tolist()
         self.renderer.reset()
         self.renderer.render_step()
-        return np.array([self.state]), {}
+        return np.array([self.state])
 
     def render(self):
         return self.renderer.get_renders()
