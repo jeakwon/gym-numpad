@@ -89,7 +89,7 @@ class NumPadEnv(gym.Env):
         self.renderer.render_step()
         return np.array([self.state])
 
-    def render(self):
+    def render(self, **kwargs):
         return self.renderer.get_renders()
 
     def _render(self, mode="human"):
