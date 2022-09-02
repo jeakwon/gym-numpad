@@ -16,7 +16,8 @@ class NumPadEnv(gym.Env):
         "render_fps": 50,
     }
     def __init__(self, render_mode: Optional[str] = None, size=2, cues=['a', 'b', 'c', 'd', 'e'], init_pos=[0, 0], seed=0):
-        self.seed(seed)
+        self.__seed = seed
+        self.seed(self.__seed)
         self.size = 2*size+1
         self.cues = cues
         self.init_pos = init_pos
@@ -76,7 +77,8 @@ class NumPadEnv(gym.Env):
         return np.array([self.state]), reward, terminated, {}
 
     def reset(self, *, seed: Optional[int] = None, options: Optional[dict] = None):
-        self.seed(seed)
+        self.__seed = seed
+        self.seed(self.__seed)
         low, high = 0, len(self.vacant_zones)
         if self.init_pos == None:
             self.pos = self.vacant_zones[int(self.np_random.randint(low, high, 1))]
