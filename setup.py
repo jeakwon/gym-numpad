@@ -6,5 +6,5 @@ setup(name="gym_numpad",
       author="Jea Kwon",
       license="MIT",
       packages=["gym_numpad", "gym_numpad.envs"],
-      install_requires = ["gym==0.21", "pygame", "numpy", "pyglet"]
+      install_requires = ["gym==0.21", "pygame", "numpy", "pyglet", "opencv-python"]
 )
