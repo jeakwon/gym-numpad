@@ -349,6 +349,6 @@ class NumPadEnv(gym.Env):
 
         return np.stack([P, Q, R, S])
 
-class NumPad2x2(NumPadEnv):
+class NumPad2x2_test(NumPadEnv):
     def __init__(self):
         super().__init__(2, cues=range(25), sequence_policy='l2r_r2l', value_policy='equal', init_policy='top_left', total_steps=1000, map_seed=1)
