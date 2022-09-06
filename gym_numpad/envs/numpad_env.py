@@ -1,105 +1,115 @@
-import math
-from typing import Optional
 
+from typing import Optional, Union, List, Tuple
 import numpy as np
-
 import gym
 from gym import spaces
-from gym.utils import seeding
-from gym.error import DependencyNotInstalled
-from gym_numpad.envs.renderer import Renderer
-
 
 class NumPadEnv(gym.Env):
     metadata = {
         "render_modes": ["human", "rgb_array", "single_rgb_array"],
         "render_fps": 50,
     }
-    def __init__(self, render_mode: Optional[str] = None, size=2, cues=['a', 'b', 'c', 'd', 'e'], init_pos=[0, 0]):
-        self.seed()
-        self.size = 2*size+1
-        self.cues = cues
-        self.init_pos = init_pos
-        self.MIN = 0
-        self.MAX = self.size-1
-        self.reward_zones = []
-        self.vacant_zones = []
-        for i in range(self.size):
-            for j in range(self.size):
-                if (i%2==1)&(j%2==1):
-                    self.reward_zones.append([i, j])
-                else:
-                    self.vacant_zones.append([i, j])
-        self._reward_seqs = self.np_random.permutation(self.reward_zones)
-        self.Q = self.np_random.choice(range(len(cues)), (self.size, self.size))
-
-        self.render_mode = render_mode
-        self.renderer = Renderer(self.render_mode, self._render)
-
+    def __init__(
+        self, 
+        size: int = 1,
+        cues: Optional[List[Union[int, float, str]]] = None,
+        init_policy: Optional[str] = None, 
+        sequence_policy: Optional[str] = None, 
+        value_policy: Optional[str] = None, 
+        normalize: bool = False,
+        map_seed: Optional[int] = None,
+        total_steps: Optional[int] = None,
+    ):
+        self.params = dict(
+            size=size,
+            cues=cues,
+            init_policy=init_policy,
+            sequence_policy=sequence_policy,
+            value_policy=value_policy,
+            normalize=normalize,
+            seed=map_seed,
+        )
+        self.tile_size = 2*size+1
         self.screen_dim = 600
         self.screen = None
         self.clock = None
         self.isopen = True
-        
-        low = np.array([0])
-        high = np.array([len(cues)])
+
+        self.total_steps = total_steps
+        self.steps_count = None
+
+        self.init_state = self.create_numpad(**self.params)
         self.action_space = spaces.Discrete(5)
-        self.observation_space = spaces.Box(low, high, dtype=np.int32)
-        
-    def seed(self, seed=None):
-        self.np_random, seed = seeding.np_random(seed)
-        return [seed]
-        
+        self.observation_space = spaces.Discrete(len(cues))
+
     def step(self, action:int): 
-        assert self.action_space.contains(
-            action
-        ), f"{action!r} ({type(action)}) invalid"
+        assert self.action_space.contains(action), f"{action!r} ({type(action)}) invalid"
+        n_rows = self.state.shape[1]
+        n_cols = self.state.shape[2]
+        i, j = np.where(self.state[0]==1)
         
         if bool(action): # 0:Stay 1:North 2:West 3:South: 4:East
+            self.state[0, i, j] = 0
             th = action*np.pi/2
-            i = np.clip(self.pos[0]+np.sin(th), self.MIN, self.MAX).astype(np.int32)
-            j = np.clip(self.pos[1]+np.cos(th), self.MIN, self.MAX).astype(np.int32)
-            self.pos = [i, j]
-            self.state = self.cues[self.Q[i, j]]
+            i = np.clip(i+np.sin(th), 0, n_rows-1).astype(np.int32)
+            j = np.clip(j+np.cos(th), 0, n_cols-1).astype(np.int32)
+            self.state[0, i, j] = 1
         
+
+        P, Q, R, S = self.state
+        p, q, r, s = self.state[:, i, j]
+
+        obs = q
         reward = 0
-        terminated = False
-        if self.pos in self.reward_seqs:
-            if self.pos == self.reward_seqs[0]:
-                reward=1
-                self.reward_seqs = self.reward_seqs[1:]
-            else:
-                terminated = True
-        if len(self.reward_seqs)==0:
-            terminated = True
-
-        self.renderer.render_step()
-        return np.array([self.state]), reward, terminated, {}
-
-    def reset(self, *, seed: Optional[int] = None, options: Optional[dict] = None):
-        self.seed(seed)
-        low, high = 0, len(self.vacant_zones)
-        if self.init_pos == None:
-            self.pos = self.vacant_zones[int(self.np_random.randint(low, high, 1))]
+        done = False
+        
+        if self.total_steps is None:
+            if R[i, j]>0:
+                if s==S[R>0].min():
+                    reward+=r[0]
+                    self.state[2, i, j] = 0
+                    self.state[3, i, j] = 0
+                else:
+                    done = True
+            
+            if not (R>0).any(): # if no positive reward left
+                done = True
         else:
-            self.pos = self.init_pos
-        self._init_pos = self.pos
-        self.state = self.cues[self.Q[self.pos[0], self.pos[1]]]
-        self.reward_seqs = self._reward_seqs.copy().tolist()
-        self.renderer.reset()
-        self.renderer.render_step()
-        return np.array([self.state])
+            assert isinstance(self.total_steps, int), 'total_steps must be positive integer'
 
-    def render(self, mode, **kwargs):
-        return self.renderer.get_renders()
+            if s>0:
+                if s==S[S>0].min():
+                    self.state[3, i, j] = 0
+                    if r>0:
+                        reward+=r[0]
+                        self.state[2, i, j] = 0
+                else:
+                    self.state[3] = self.init_state[3].copy()
+        
+            if not (R>0).any(): # if no positive reward left
+                self.state = self.init_state.copy()
 
-    def _render(self, mode="human"):
+            # Termination
+            self.steps_count += 1
+            if self.steps_count == self.total_steps:
+                done = True
+        return obs, reward, done, {}
+
+    def reset(self):
+        if self.total_steps is not None:
+            self.steps_count = 0
+        self.state = self.init_state.copy()
+        P, Q, R, S = self.state
+        i, j = np.where(P==1)
+        obs = Q[i, j]
+        return obs
+
+    def render(self, mode="human"):
         assert mode in self.metadata["render_modes"]
         try:
             import pygame
-            from pygame import gfxdraw
         except ImportError:
-            raise DependencyNotInstalled(
+            raise gym.error.DependencyNotInstalled(
                 "pygame is not installed, run `pip install gym[classic_control]`"
             )
 
@@ -115,55 +125,58 @@ class NumPadEnv(gym.Env):
         if self.clock is None:
             self.clock = pygame.time.Clock()
         
+        scale = self.screen_dim/self.tile_size
+        color = {
+            'background' : (100, 100, 100),
+            'line' : (255, 255, 255),
+            'agent' : (35,35,35),
+            'cue' : (255, 255, 255),
+            'reward_o' : (243, 135, 47),
+            'reward_x' : (255, 255, 255),
+            'reward_tile' : (35,35,35),
+        }
+
         self.surf = pygame.Surface((self.screen_dim, self.screen_dim))
-        self.surf.fill((100, 100, 100))
-        
-        L = self.screen_dim/self.size
-
-        # show init position 
-        x = int(self._init_pos[0]*L+1)
-        y = int(self._init_pos[1]*L+1)
-        w = int(L)
-        h = int(L)
-        pygame.draw.rect(self.surf, [140, 140, 140], [x, y, w, h])
-
-        # show rewards
-        for i, reward_seq in enumerate(self.reward_seqs):
-            x = int(reward_seq[0]*L+1)
-            y = int(reward_seq[1]*L+1)
-            w = int(L)
-            h = int(L)
-            reward_pos = [x, y, w, h]
-            pygame.draw.rect(self.surf, [35, 35, 35], reward_pos)
+        self.surf.fill(color['background'])        
+        blit_pairs = []
+        blit_pairs.append( (self.surf, (0,0)) )
 
         # show grid lines
-        for i in range(self.size+1):
-            pygame.draw.line(self.surf, [255 ,255, 255], (0, i*L), (self.screen_dim, i*L))
-            pygame.draw.line(self.surf, [255 ,255, 255], (i*L, 0), (i*L, self.screen_dim))
-            
-        # show agent
-        agent_pos = L*(np.array(self.pos)+0.5)
-        pygame.draw.circle(self.surf, [243, 135, 47], agent_pos, L/4)
-        self.screen.blit(self.surf, (0, 0))
-        
-        # show cues
-        for i in range(self.size):
-            for j in range(self.size):
-                font = pygame.font.SysFont("arial", int(L/3), bold=False)
-                text = font.render(f' {self.cues[self.Q[i, j]]}', False, [255, 255, 255])
-                self.screen.blit(text, [i*L, j*L])
+        for i in range(self.tile_size+1):
+            pygame.draw.line(self.surf, color['line'], (0, i*scale), (self.screen_dim, i*scale))
+            pygame.draw.line(self.surf, color['line'], (i*scale, 0), (i*scale, self.screen_dim))
 
-        # show reward sequence
-        for k, [i, j] in enumerate(self.reward_seqs):
-            R_tot = len(self.reward_zones)
-            R_rem = len(self.reward_seqs)
-            K = np.arange(R_tot)[-R_rem:][k]+1
-            font = pygame.font.SysFont("arial", int(L/2), bold=True)
-            color = [243, 135, 47] if [i, j] == self.reward_seqs[0] else [45, 45, 45]
-            text = font.render(f'{K}', False, color)
-            zone = text.get_rect(center=[(i+0.5)*L, (j+0.5)*L])
-            self.screen.blit(text, zone)
-        
+        L, M, N = self.state.shape
+        for i in range(M):
+            for j in range(N):
+                p, q, r, s = self.state[:, i, j]
+                
+                agent_loc = scale*(np.array([i, j])+0.5)
+                if p==1:
+                    pygame.draw.circle(self.surf, color['agent'], agent_loc, scale/4)
+                
+                if q!=None:
+                    cue_loc = scale*(np.array([i, j]))
+                    font = pygame.font.SysFont("arial", int(scale/3), bold=False)
+                    text = font.render(f' {q}', False, color['cue'])
+                    blit_pairs.append((text, cue_loc))
+
+                if s>0:
+                    x, y, w, h = int(scale*i+1), int(scale*j+1), int(scale)-1, int(scale)-1
+                    reward_loc = (x, y, w, h)
+                    pygame.draw.rect(self.surf, color['reward_tile'], reward_loc)
+
+                s_init = self.init_state[:, i, j][3]
+                if s_init>0:
+                    sequence_loc = scale*(np.array([i, j])+0.5)
+                    font = pygame.font.SysFont("arial", int(scale/2), bold=True)
+                    text = font.render(f'{s_init}', False, color['reward_o'] if r>0 else color['reward_x'])
+                    zone = text.get_rect(center=sequence_loc)
+                    blit_pairs.append((text, zone))
+
+        for item, loc in blit_pairs:
+            self.screen.blit(item, loc)
+
         if mode == "human":
             pygame.event.pump()
             self.clock.tick(self.metadata["render_fps"])
@@ -173,52 +186,170 @@ class NumPadEnv(gym.Env):
             return np.transpose(
                 np.array(pygame.surfarray.pixels3d(self.screen)), axes=(1, 0, 2)
             )
-
+        
     def close(self):
-        if self.screen is  not None:
+        if self.screen is not None:
             import pygame
 
             pygame.display.quit()
             pygame.quit()
             self.isopen = False
 
-class NumPad2x2(NumPadEnv):
-    def __init__(self, render_mode=None):
-        super().__init__(render_mode=render_mode, size=2, cues=[11, 22, 33, 44], init_pos=[0, 0])
-
-class NumPad3x3(NumPadEnv):
-    def __init__(self, render_mode=None):
-        super().__init__(render_mode=render_mode, size=3, cues=[11, 22, 33, 44, 55, 66], init_pos=[0, 0])
-
-class NumPad4x4(NumPadEnv):
-    def __init__(self, render_mode=None):
-        super().__init__(render_mode=render_mode, size=4, cues=[11, 22, 33, 44, 55, 66, 77, 88], init_pos=[0, 0])
-
-class NumPad2x2RandomInit(NumPadEnv):
-    def __init__(self, render_mode=None):
-        super().__init__(render_mode=render_mode, size=2, cues=[11, 22, 33, 44], init_pos=None)
-
-class NumPad3x3RandomInit(NumPadEnv):
-    def __init__(self, render_mode=None):
-        super().__init__(render_mode=render_mode, size=3, cues=[11, 22, 33, 44, 55, 66], init_pos=None)
-
-class NumPad4x4RandomInit(NumPadEnv):
-    def __init__(self, render_mode=None):
-        super().__init__(render_mode=render_mode, size=4, cues=[11, 22, 33, 44, 55, 66, 77, 88], init_pos=None)
-
+    def create_numpad(self, 
+        size: int, 
+        cues: Optional[List[Union[int, float, str]]] = None,
+        init_policy: Optional[str] = None, 
+        sequence_policy: Optional[str] = None, 
+        value_policy: Optional[str] = None, 
+        normalize: bool = False,
+        seed: Optional[int] = None,
+    ):
+        """
+        :param size: 
+            determines number of rewards (size*size) and map shape (2*size+1, 2*size+1).
+        :param cues: 
+            list of cues distributed to tiles. ex) [1, 2, 3], ['A', 'B', 'C']
+        :param init_policy: {top_left|top_right|bottom_left|bottom_right|center|random} 
+            determines agent init position
+        :param sequence_policy: {l2r_l2r|l2r_r2l|shuffle} 
+            determines sequence of rewards. l2r means left to right, and r2l means right to left
+            if None, 0
+        :param value_policy: {equal|sequential} 
+            determines reward values for each reward location. 
+            if None, 0
+        :param normalize: default False
+            if True, reward values are normalized by dividing with total rewards
+        :param seed:
+            if provided, random sequences are fixed.
         
-if __name__ == "__main__":
-    env = NumPad2x2('human')
-    for episode in range(30):
-        env.reset(seed=episode)
-        # env.action_space.seed(episode)
-        score = 0
-        for t in range(1000):
-            env.render(mode='human')
-            action = env.action_space.sample()
-            observation, reward, done, info = env.step(action)
-            print(action, observation, reward)
-            score+=reward
-            if done:
-                print("Episode finished after {} timesteps. Score: {}".format(t+1, score))
-                break
+        :returns: map. np.ndarray with shape of (4, size, size)
+            reward_map <= np.stack([P, Q, R, S])
+            - P : Agent Position
+            - Q : Cue Distribution
+            - R : Reward Location
+            - S : Reward Sequence
+
+        :example:
+
+            reward_map[:, i, j] -> np.array([agent, cue, rew_seq, rew_val])
+        """
+        rng = np.random.default_rng(seed)
+        map_shape = (2*size+1, 2*size+1)    
+        num_rewards = size*size
+
+        M = np.zeros([4, size, size])
+        for i in range(size):
+            for j in range(size):
+                M[0, i, j] = i
+                M[1, i, j] = j
+
+        seq = np.zeros(shape=(size, size))
+        if sequence_policy is not None:
+            if sequence_policy == 'l2r_l2r':
+                seq = np.arange(1, num_rewards+1)
+                seq = seq.reshape([size, size])
+            elif sequence_policy == 'l2r_r2l':
+                seq = np.arange(1, num_rewards+1)
+                seq = seq.reshape([size, size])
+                seq[1::2] = np.fliplr(seq[1::2])
+            elif sequence_policy == 'shuffle':
+                seq = np.arange(1, num_rewards+1)
+                seq = rng.permutation(seq)
+                seq = seq.reshape((size, size))
+            else:
+                raise Exception("Invalid sequence_policy. should be one of [ None | 'l2r_l2r' | 'l2r_r2l' | 'shuffle' ] ")
+            
+            M[2, :, :] += seq
+            
+        val = np.zeros(shape=(size, size))
+        if value_policy is not None:
+            if value_policy == 'equal':
+                val+=1
+            elif value_policy == 'sequential':
+                val+=seq
+            else:
+                raise Exception("Invalid value_policy. should be one of [ None | 'equal' | 'sequential' ] ")
+            
+            M[3, :, :] += val/val.sum() if normalize else val
+
+        rewards = [(int(2*i+1), int(2*j+1), int(s), float(v)) for i, j, s, v in M.reshape(4, -1).T]
+
+        init_position = (0, 0)
+        if init_policy is not None:
+            if init_policy == 'top_left':
+                init_position = (0, 0)
+            elif init_policy == 'top_right':
+                init_position = (0, 2*size)
+            elif init_policy == 'bottom_left':
+                init_position = (2*size, 0)
+            elif init_policy == 'bottom_right':
+                init_position = (2*size, 2*size)
+            elif init_policy == 'center':
+                init_position = (size, size)
+            elif init_policy == 'random':
+                init_position = (rng.integers(0, map_shape[0]), rng.integers(0, map_shape[1]))
+            else:
+                raise Exception("Invalid init_policy. should be one of [ None | 'top_left' | 'top_right' | 'bottom_left' | 'bottom_right' | 'center' | 'random' ] ")
+            
+            if init_position in [(i, j) for i, j, _, _ in rewards]:
+                i, j = init_position
+                shift = rng.choice([-1, 1])
+                init_position = rng.choice([(i, j+shift), (i+shift, j)])
+            
+        return self.get_reward_map(
+            shape=map_shape, 
+            position=init_position, 
+            cues=cues, 
+            rewards=rewards, 
+            seed=seed)
+
+    @staticmethod
+    def get_reward_map(
+        shape: Tuple[int, int],
+        position: Optional[Tuple[int, int]] = None,
+        cues: Optional[List[Union[int, float, str]]] = None,
+        rewards: Optional[List[Tuple[int, int, int, float]]] = None,
+        seed: Optional[int] = None,
+    ) -> np.ndarray:
+        """
+        :param shape: reward_map shape (width, height)
+        :param position: agent position (i, j)
+        :param cues: list of cues distributed to tiles. ex) [1, 2, 3], ['A', 'B', 'C']
+        :param rewards: list of reward tuples. {(i, j) | (i, j, rwd_seq) | (i, j, rwd_seq, rwd_val)}
+        
+        :returns: map. np.ndarray with shape of (4, width, height)
+            reward_map <= np.stack([P, Q, R, S])
+            - P : Agent Position
+            - Q : Cue Distribution
+            - R : Reward Values
+            - S : Reward Sequence
+
+        :example:
+
+            reward_map[:, i, j] -> np.array([agent, cue, rew_seq, rew_val])
+        """
+        width, height = shape
+        P = np.zeros(shape=shape, dtype=object) # Agent Position
+        Q = np.zeros(shape=shape, dtype=object) # Cue Distribution
+        R = np.zeros(shape=shape, dtype=object) # Reward Location
+        S = np.zeros(shape=shape, dtype=object) # Reward Sequence
+
+        rng = np.random.default_rng(seed)
+
+        if position is not None:
+            i, j = position
+            P[i, j] = 1
+
+        if cues is not None:
+            Q[:, :] = rng.choice(cues, size=shape, replace=len(cues)<width*height)
+        
+        if rewards is not None:
+            for i, j, *x in rewards:
+                S[i, j] = x[0] if len(x)>=1 else 0
+                R[i, j] = x[1] if len(x)==2 else 1
+
+        return np.stack([P, Q, R, S])
+
+class NumPad2x2(NumPadEnv):
+    def __init__(self):
+        super().__init__(2, cues=range(25), sequence_policy='l2r_r2l', value_policy='equal', init_policy='top_left', total_steps=1000, map_seed=1)
