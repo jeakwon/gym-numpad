@@ -29,7 +29,7 @@ class NumPadEnv(gym.Env):
             seed=map_seed,
         )
         self.tile_size = 2*size+1
-        self.screen_dim = 300
+        self.screen_dim = 500
         self.screen = None
         self.clock = None
         self.isopen = True
