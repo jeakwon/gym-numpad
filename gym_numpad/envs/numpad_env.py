@@ -129,7 +129,7 @@ class NumPadEnv(gym.Env):
         color = {
             'background' : (100, 100, 100),
             'line' : (255, 255, 255),
-            'agent' : (85,85,85),
+            'agent' : (0, 50, 100),
             'cue' : (255, 255, 255),
             'reward_o' : (243, 135, 47),
             'reward_x' : (255, 255, 255),
