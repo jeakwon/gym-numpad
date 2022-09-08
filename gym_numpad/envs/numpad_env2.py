@@ -358,17 +358,17 @@ class NumPadEnv(gym.Env):
 
 class NumPad2x2_test(NumPadEnv):
     def __init__(self):
-        super().__init__(size=2, cues=range(25), sequence_policy='l2r_r2l', value_policy='equal', init_policy='top_left', total_steps=1000, map_seed=1)
+        super().__init__(size=2, cues=range(25), sequence_policy='l2r_r2l', value_policy='equal', init_policy='top_left', total_steps=1000, n_maps=4)
 
         
 class NumPad2x2(NumPadEnv):
-    def __init__(self, cues=range(2*(2*2+1)), sequence_policy='shuffle', value_policy='equal', init_policy='random', total_steps=1000, map_seed=0, **kwargs):
+    def __init__(self, cues=range(2*(2*2+1)), sequence_policy='shuffle', value_policy='equal', init_policy='random', total_steps=1000, n_maps=4, **kwargs):
         super().__init__(size=2, cues=cues, sequence_policy=sequence_policy, value_policy=value_policy, init_policy=init_policy, total_steps=total_steps, map_seed=map_seed, **kwargs)
 
 class NumPad3x3(NumPadEnv):
-    def __init__(self, cues=range(3*(3*2+1)), sequence_policy='shuffle', value_policy='equal', init_policy='random', total_steps=1000, map_seed=0, **kwargs):
+    def __init__(self, cues=range(3*(3*2+1)), sequence_policy='shuffle', value_policy='equal', init_policy='random', total_steps=1000, n_maps=4, **kwargs):
         super().__init__(size=3, cues=cues, sequence_policy=sequence_policy, value_policy=value_policy, init_policy=init_policy, total_steps=total_steps, map_seed=map_seed, **kwargs)
 
 class NumPad4x4(NumPadEnv):
-    def __init__(self,cues=range(4*(4*2+1)), sequence_policy='shuffle', value_policy='equal', init_policy='random', total_steps=1000, map_seed=0, **kwargs):
+    def __init__(self,cues=range(4*(4*2+1)), sequence_policy='shuffle', value_policy='equal', init_policy='random', total_steps=1000, n_maps=4, **kwargs):
         super().__init__(size=4, cues=cues, sequence_policy=sequence_policy, value_policy=value_policy, init_policy=init_policy, total_steps=total_steps, map_seed=map_seed, **kwargs)
