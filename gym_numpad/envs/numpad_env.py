@@ -129,7 +129,7 @@ class NumPadEnv(gym.Env):
         color = {
             'background' : (100, 100, 100),
             'line' : (255, 255, 255),
-            'agent' : (35,35,35),
+            'agent' : (85,85,85),
             'cue' : (255, 255, 255),
             'reward_o' : (243, 135, 47),
             'reward_x' : (255, 255, 255),
@@ -356,14 +356,13 @@ class NumPad2x2_test(NumPadEnv):
 
         
 class NumPad2x2(NumPadEnv):
-    def __init__(self, **kwargs):
-        super().__init__(size=2, cues=range(2*(2*2+1)), sequence_policy='shuffle', value_policy='equal', init_policy='random', total_steps=1000, map_seed=0, **kwargs)
-
+    def __init__(self, cues=range(2*(2*2+1)), sequence_policy='shuffle', value_policy='equal', init_policy='random', total_steps=1000, map_seed=0, **kwargs):
+        super().__init__(size=2, cues=cues, sequence_policy=sequence_policy, value_policy=value_policy, init_policy=init_policy, total_steps=total_steps, map_seed=map_seed, **kwargs)
 
 class NumPad3x3(NumPadEnv):
-    def __init__(self, **kwargs):
-        super().__init__(size=2, cues=range(3*(3*2+1)), sequence_policy='shuffle', value_policy='equal', init_policy='random', total_steps=1000, map_seed=0, **kwargs)
+    def __init__(self, cues=range(3*(3*2+1)), sequence_policy='shuffle', value_policy='equal', init_policy='random', total_steps=1000, map_seed=0, **kwargs):
+        super().__init__(size=3, cues=cues, sequence_policy=sequence_policy, value_policy=value_policy, init_policy=init_policy, total_steps=total_steps, map_seed=map_seed, **kwargs)
 
 class NumPad4x4(NumPadEnv):
-    def __init__(self, **kwargs):
-        super().__init__(size=2, cues=range(4*(4*2+1)), sequence_policy='shuffle', value_policy='equal', init_policy='random', total_steps=1000, map_seed=0, **kwargs)
+    def __init__(self,cues=range(4*(4*2+1)), sequence_policy='shuffle', value_policy='equal', init_policy='random', total_steps=1000, map_seed=0, **kwargs):
+        super().__init__(size=4, cues=cues, sequence_policy=sequence_policy, value_policy=value_policy, init_policy=init_policy, total_steps=total_steps, map_seed=map_seed, **kwargs)
