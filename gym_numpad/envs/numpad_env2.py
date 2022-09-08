@@ -88,7 +88,7 @@ class NumPadEnv(gym.Env):
                     m, n = vacant_positions[idx]   
                     # regen agent position
                     self.state[0][i, j] = 0
-                    self.state[0][m, n] = 1
+                    self.state[0][-1, -1] = 1
                     
         
             if not (R>0).any(): # if no positive reward left
