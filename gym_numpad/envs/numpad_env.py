@@ -77,13 +77,14 @@ class NumPadEnv(gym.Env):
             assert isinstance(self.total_steps, int), 'total_steps must be positive integer'
 
             if s>0:
-                if s==S[S>0].min():
-                    self.state[3, i, j] = 0
-                    if r>0:
-                        reward+=r[0]
-                        self.state[2, i, j] = 0
-                else:
-                    self.state[3] = self.init_state[3].copy()
+                if s==S[S>0].min(): # if found right reward sequence
+                    self.state[3, i, j] = 0 # set reward sequence 0
+                    if r>0: 
+                        reward+=r[0] 
+                        self.state[2, i, j] = 0 # set reward value 0
+                else: # if found wrong reward sequence
+                    self.state[3] = self.init_state[3].copy() # reset only reward sequence not reward value
+                    self.state[0] = self.create_numpad(**self.params)[0] # regen agent position
         
             if not (R>0).any(): # if no positive reward left
                 self.state = self.init_state.copy()
