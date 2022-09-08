@@ -84,11 +84,11 @@ class NumPadEnv(gym.Env):
                 else: # if found wrong reward sequence
                     self.state[3] = self.init_state[3].copy() # reset only reward sequence not reward value
                     vacant_positions = np.argwhere(self.state[3]==0)
-                    idx = np.random.randint(vacant_positions.shape[1])
+                    idx = np.random.randint(0, vacant_positions.shape[0])
                     m, n = vacant_positions[idx]   
                     # regen agent position
                     self.state[0][i, j] = 0
-                    self.state[0][-1, -1] = 1
+                    self.state[0][m, n] = 1
                     
         
             if not (R>0).any(): # if no positive reward left
