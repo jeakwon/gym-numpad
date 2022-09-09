@@ -294,14 +294,14 @@ class NumPadEnv(gym.Env):
             elif init_policy == 'center':
                 init_position = (size, size)
             elif init_policy == 'random':
-                init_position = (rng.integers(0, map_shape[0]), rng.integers(0, map_shape[1]))
+                init_position = (np.random.randint(0, map_shape[0]), np.random.randint(0, map_shape[1]))
             else:
                 raise Exception("Invalid init_policy. should be one of [ None | 'top_left' | 'top_right' | 'bottom_left' | 'bottom_right' | 'center' | 'random' ] ")
             
             if init_position in [(i, j) for i, j, _, _ in rewards]:
                 i, j = init_position
-                shift = rng.choice([-1, 1])
-                init_position = rng.choice([(i, j+shift), (i+shift, j)])
+                shift = np.random.choice([-1, 1])
+                init_position = np.random.choice([(i, j+shift), (i+shift, j)])
             
         return self.get_reward_map(
             shape=map_shape, 
