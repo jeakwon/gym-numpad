@@ -1,6 +1,7 @@
 import random
 import gym
 from gym import spaces
+from copy import deepcopy
 import numpy as np
 from typing import Tuple, Optional, List, Union
 
@@ -35,7 +36,7 @@ class NumPadEnv(gym.Env):
         non_reward_positions = np.argwhere(self.map[2]==0)
         i, j = random.choice(non_reward_positions)
 
-        self.state = self.map.copy()
+        self.state = deepcopy(self.map)
         self.state[0][i, j] = 1 # set agent init position
         obs = self.state[1][i, j] # get current position cue
         return obs
@@ -64,17 +65,10 @@ class NumPadEnv(gym.Env):
                     reward+=R[i, j]
                     self.state[2][i, j] = 0 # set reward value 0
             else: # if found wrong reward sequence
-                self.state[0][i, j] = 0 # set agent old position 0
                 self.state[3] = self.map[3] # rollback sequences
-                non_reward_positions = np.argwhere(self.map[2]==0)
-                i, j = random.choice(non_reward_positions)
-                self.state[0][i, j] = 1 # set agent new position 1
 
         if not (R>0).any(): # if no positive reward left
-            self.state[0][i, j] = 0 # set agent old position 0
-            self.state = self.map.copy()
-            non_reward_positions = np.argwhere(self.map[2]==0)
-            i, j = random.choice(non_reward_positions)
+            self.state = deepcopy(self.map)
             self.state[0][i, j] = 1 # set agent new position 1
 
         self.T += 1
