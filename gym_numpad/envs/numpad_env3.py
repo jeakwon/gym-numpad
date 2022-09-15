@@ -1,4 +1,3 @@
-from os import stat
 import random
 from copy import deepcopy
 from typing import List, Optional, Tuple, Union
@@ -47,7 +46,7 @@ class NumPadEnv(gym.Env):
                 for seed in range(n_maps)
             ]
         self.action_space = spaces.Discrete(5)
-        self.observation_space = spaces.MultiDiscrete([len(cues), 2, 2])
+        self.observation_space = spaces.MultiDiscrete([len(cues), 2, 3])
         self.possible_actions = np.arange(self.action_space.n)
         self.invalid_actions: List[int] = []
 
@@ -82,7 +81,7 @@ class NumPadEnv(gym.Env):
         cue = self.state[1][i, j]  # get current position cue
         reward = 0
         done = False
-        invalid_sequence = False
+        invalid_sequence = 0  # 0: empty signal, 1: correct signal, 2: fail signal
 
         action_pool = [
             (0, 0),
@@ -114,12 +113,13 @@ class NumPadEnv(gym.Env):
                 self.state[3][i, j] == self.state[3][self.state[3] > 0].min()
             ):  # if found right reward sequence
                 self.state[3][i, j] = 0  # set reward sequence 0
+                invalid_sequence = 1
                 if self.state[2][i, j] > 0:
                     reward += self.state[2][i, j]
                     self.state[2][i, j] = 0  # set reward value 0
             else:  # if found wrong reward sequence
                 if not (self.state[3] == 1).any():
-                    invalid_sequence = True
+                    invalid_sequence = 2
                     self.reset_seq()
 
                     self.reset_pos()
