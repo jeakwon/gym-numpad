@@ -83,8 +83,7 @@ def create_2d_graph(m, n, add_diag_edges=True, draw=False):
         pos = nx.spring_layout(G, iterations=100, seed=39775)
         nx.draw(G, pos, node_size=0, with_labels=False)
     return G
- 
-def create_2d_connected_sequences(m, n, diag_neighbors=True):
+def create_2d_connected_sequences(m, n, diag_neighbors=True, seed=0):
     G = create_2d_graph(m, n, add_diag_edges=diag_neighbors)
     Gi = nx.convert_node_labels_to_integers(G, ordering = 'sorted', label_attribute = 'origin' )
 
@@ -99,4 +98,7 @@ def create_2d_connected_sequences(m, n, diag_neighbors=True):
             i, j = list(G.nodes)[k]
             arr[i, j] = seq+1
         arrs.append(arr)
-    return np.stack(arrs)
+
+    rng = np.random.default_rng(seed)
+    rng.shuffle(arrs)
+    return np.stack(arrs) 
