@@ -5,8 +5,7 @@ from typing import List, Optional, Tuple, Union
 import gym
 import numpy as np
 from gym import spaces
-
-
+from gym_numpad.envs.utils import create_2d_connected_sequences
 class NumPadEnv(gym.Env):
     metadata = {
         "render_modes": ["human", "rgb_array", "single_rgb_array"],
@@ -21,6 +20,7 @@ class NumPadEnv(gym.Env):
         steps_per_episode: int = 1000,
         random_init: bool = False,
         random_regen: bool = False,
+        neighbor_sequence bool = True,
         custom_maps: Optional[List] = None,
     ):
         self.tile_size = 2 * size - 1
@@ -41,9 +41,9 @@ class NumPadEnv(gym.Env):
                 self.map_sanity_check(map_)
             self.maps = custom_maps
         else:
+            func = self.create_hamiltonian_numpad if neighbor_sequence else self.create_numpad
             self.maps = [
-                self.create_numpad(shape=(size, size), cues=cues, seed=seed)
-                for seed in range(n_maps)
+                func(shape=(size, size), cues=cues, seed=seed) for seed in range(n_maps)
             ]
         self.action_space = spaces.Discrete(5)
         self.observation_space = spaces.MultiDiscrete([len(cues), 2, 3])
@@ -194,6 +194,43 @@ class NumPadEnv(gym.Env):
 
         return np.stack([pos_layer, cue_layer, rwd_layer, seq_layer])
 
+    @staticmethod
+    def create_hamiltonian_numpad(
+        shape: Tuple[int, int],
+        cues: List[Union[int, float, str]],
+        seed: Optional[int] = None,
+    ) -> np.ndarray:
+        """
+        :param shape: reward shape (width, height)
+        :param cues: list of cues distributed to tiles. ex) [1, 2, 3], ['A', 'B', 'C']
+        :seed: map random control
+
+        :returns: numpad, [4 x W x H]
+        """
+        I, J = shape  # reward distribution
+        H, W = I * 2 - 1, J * 2 - 1  # map size
+        n_rwds = I * J
+        n_cues = H * W
+        
+        rng = np.random.default_rng(seed)
+        all_seqs = create_2d_connected_sequences(I, J, seed=seed)
+        idx = rng.integers(len(all_seqs))
+        
+        seqs = all_seqs[idx].flatten()
+        cues = rng.choice(cues, size=(n_cues,), replace=len(cues) < n_cues)
+        rwds = [(2 * i, 2 * j) for i in range(I) for j in range(J)]
+
+        pos_layer = np.zeros(shape=(H, W), dtype=object)
+        cue_layer = cues.reshape(H, W)
+        rwd_layer = np.zeros(shape=(H, W), dtype=object)
+        seq_layer = np.zeros(shape=(H, W), dtype=object)
+
+        for (h, w), seq in zip(rwds, seqs):
+            rwd_layer[h, w] = 1
+            seq_layer[h, w] = seq
+
+        return np.stack([pos_layer, cue_layer, rwd_layer, seq_layer])
+    
     @staticmethod
     def map_sanity_check(map_):
         assert isinstance(map_, np.ndarray), "map should be provided as numpy.ndarray"
@@ -356,15 +393,20 @@ if __name__ == "__main__":
 
     # Parallel environments
     n_envs = 4
-    map_ = NumPadEnv.create_numpad(shape=(3, 3), cues=range(10))
-    env = make_vec_env(NumPad3x3, n_envs=n_envs, env_kwargs=dict(custom_maps=[map_]))
+    from sb3_contrib import RecurrentPPO
+    from stable_baselines3.common.env_util import make_vec_env
+
+    # Parallel environments
+    n_envs = 4
+    # map_ = NumPadEnv.create_numpad(shape=(3, 3), cues=range(10))
+    env = make_vec_env(NumPad3x3, n_envs=n_envs)
     model = RecurrentPPO("MlpLstmPolicy", env, verbose=1)
-    model.learn(total_timesteps=1000)
-    model.save("rppo_numpad2x2_test")
+    # model.learn(total_timesteps=1000)
+    # model.save("rppo_numpad2x2_test")
 
-    del model  # remove to demonstrate saving and loading
+    # del model  # remove to demonstrate saving and loading
 
-    model = RecurrentPPO.load("rppo_numpad2x2_test")
+    # model = RecurrentPPO.load("rppo_numpad2x2_test")
 
     obs = env.reset()
 
@@ -377,3 +419,4 @@ if __name__ == "__main__":
         obs, rewards, dones, info = env.step(action)
         episode_starts = dones
         env.render()
+
