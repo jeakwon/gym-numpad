@@ -20,7 +20,7 @@ class NumPadEnv(gym.Env):
         steps_per_episode: int = 1000,
         random_init: bool = False,
         random_regen: bool = False,
-        neighbor_sequence bool = True,
+        neighbor_sequence: bool = True,
         custom_maps: Optional[List] = None,
     ):
         self.tile_size = 2 * size - 1
