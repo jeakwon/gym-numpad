@@ -225,7 +225,7 @@ class NumPadEnv(gym.Env):
         n_cues = H * W
         
         rng = np.random.default_rng(seed)
-        all_seqs = create_2d_connected_sequences(I, J, seed=seed)
+        all_seqs = create_2d_connected_sequences(I, J, diag_neighbors=diag_neighbors, seed=seed)
         idx = rng.integers(len(all_seqs))
         
         seqs = all_seqs[idx].flatten()
