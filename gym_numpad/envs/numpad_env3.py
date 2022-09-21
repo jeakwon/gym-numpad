@@ -44,10 +44,10 @@ class NumPadEnv(gym.Env):
             self.maps = custom_maps
         else:
             if neighbor_sequence:
-                self.maps = self.create_hamiltonian_numpads(n_maps=n_maps, shape=(size, size), cues=cues, diag_neighbors=diag_neighbors, seed=seed) for seed in range(n_maps))
+                self.maps = self.create_hamiltonian_numpads(n_maps=n_maps, shape=(size, size), cues=cues, diag_neighbors=diag_neighbors, seed=seed)
 
             else:
-                self.maps = self.create_numpads(n_maps=n_maps, shape=(size, size), cues=cues, seed=seed) for seed in range(n_maps))
+                self.maps = self.create_numpads(n_maps=n_maps, shape=(size, size), cues=cues, seed=seed)
 
 
         self.action_space = spaces.Discrete(5)
