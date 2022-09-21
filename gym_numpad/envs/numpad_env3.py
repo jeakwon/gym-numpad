@@ -210,7 +210,7 @@ class NumPadEnv(gym.Env):
         shape: Tuple[int, int],
         cues: List[Union[int, float, str]],
         seed: Optional[int] = None,
-        diag_neighbors: Bool = False,
+        diag_neighbors: bool = False,
     ) -> np.ndarray:
         """
         :param shape: reward shape (width, height)
