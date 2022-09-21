@@ -55,6 +55,8 @@ class NumPadEnv(gym.Env):
         self.map = random.choice(self.maps)
         non_reward_positions = np.argwhere(self.map[2] == 0)
         i, j = random.choice(non_reward_positions)
+        
+        self.expected_max_rwd = self.steps_per_episode/rwd_seq_1cycle_dist(self.map[2])
 
         self.state = deepcopy(self.map)
         self.state[0][i, j] = 1  # set agent init position
@@ -143,7 +145,7 @@ class NumPadEnv(gym.Env):
             done = True
 
         obs = np.array([cue, reward, invalid_sequence], dtype=np.int32)
-        return obs, reward, done, {}
+        return obs, reward, done, {'expected_max_rwd':self.expected_max_rwd}
 
     def reset_pos(self):  # reset_pos gives no agent position
         self.state[0] = deepcopy(self.map[0])
@@ -346,7 +348,15 @@ class NumPadEnv(gym.Env):
             pygame.display.quit()
             pygame.quit()
             self.isopen = False
-
+    
+    @staticmethod
+    def rwd_seq_1cycle_dist(M):
+        seq = M[np.where(M>0)]
+        pos = np.argwhere(M>0)[np.argsort(seq)]
+        pos_ = np.roll(pos, -1, axis=0)
+        dist = np.linalg.norm(pos_-pos, ord=1, axis=1) # L1 norm
+        return dist.sum()
+            
 
 class NumPad2x2(NumPadEnv):
     def __init__(
