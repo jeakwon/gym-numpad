@@ -103,7 +103,7 @@ def create_2d_connected_sequences(m, n, diag_neighbors=True, seed=0, num_paths=N
     Gi = nx.convert_node_labels_to_integers(G, ordering = 'sorted', label_attribute = 'origin' )
     num_nodes = len(Gi.nodes)
     
-    num_paths_per_nodes = num_paths//num_nodes+1
+    num_paths_per_nodes = num_paths//num_nodes+1 if num_paths is not None else None
     
     HPG = HamiltonianPathGenerator()
     paths = HPG(Gi.edges, num_nodes, num_paths_per_nodes)
