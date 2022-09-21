@@ -56,7 +56,7 @@ class NumPadEnv(gym.Env):
         non_reward_positions = np.argwhere(self.map[2] == 0)
         i, j = random.choice(non_reward_positions)
         
-        possible_rwd_cycles = (self.steps_per_episode - 1) / rwd_seq_1cycle_dist(self.map[3])
+        possible_rwd_cycles = (self.steps_per_episode - 1) / self.rwd_seq_1cycle_dist(self.map[3])
         rwds_per_cycle = self.map[2].sum()
         self.expected_max_rwd = possible_rwd_cycles * rwds_per_cycle
 
