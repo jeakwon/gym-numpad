@@ -6,6 +6,7 @@ import gym
 import numpy as np
 from gym import spaces
 from gym_numpad.envs.utils import create_2d_connected_sequences
+
 class NumPadEnv(gym.Env):
     metadata = {
         "render_modes": ["human", "rgb_array", "single_rgb_array"],
@@ -21,6 +22,7 @@ class NumPadEnv(gym.Env):
         random_init: bool = False,
         random_regen: bool = False,
         neighbor_sequence: bool = True,
+        diag_neighbors = False, 
         custom_maps: Optional[List] = None,
     ):
         self.tile_size = 2 * size - 1
@@ -41,10 +43,15 @@ class NumPadEnv(gym.Env):
                 self.map_sanity_check(map_)
             self.maps = custom_maps
         else:
-            func = self.create_hamiltonian_numpad if neighbor_sequence else self.create_numpad
-            self.maps = [
-                func(shape=(size, size), cues=cues, seed=seed) for seed in range(n_maps)
-            ]
+            if neighbor_sequence:
+                self.maps = [
+                    self.create_hamiltonian_numpad(shape=(size, size), cues=cues, diag_neighbors=diag_neighbors, seed=seed) for seed in range(n_maps)
+                ]
+            else:
+                self.maps = [
+                    self.create_numpad(shape=(size, size), cues=cues, seed=seed) for seed in range(n_maps)
+                ]
+
         self.action_space = spaces.Discrete(5)
         self.observation_space = spaces.MultiDiscrete([len(cues), 2, 3])
         self.possible_actions = np.arange(self.action_space.n)
@@ -203,6 +210,7 @@ class NumPadEnv(gym.Env):
         shape: Tuple[int, int],
         cues: List[Union[int, float, str]],
         seed: Optional[int] = None,
+        diag_neighbors: Bool = False,
     ) -> np.ndarray:
         """
         :param shape: reward shape (width, height)
