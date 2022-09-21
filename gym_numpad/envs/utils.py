@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import networkx as nx
 from copy import deepcopy
+from functools import reduce
 
 # edited from https://www.techiedelight.com/print-all-hamiltonian-path-present-in-a-graph/
 # A class to represent a graph object
@@ -20,18 +21,30 @@ class Graph:
 
 class HamiltonianPathGenerator:
     def __init__(self):
-        self._paths = []
+        self._stop_flag = False
         
-    def __call__(self, edges, n):
+    def __call__(self, edges, n, num_paths_per_nodes=None):
+        """
+        :params edges: edge list
+        :params n: number of nodes
+        :params num_paths_per_nodes: how many paths to find per node
+        """
+        self._paths = [[] for _ in range(n)]
         graph = Graph(edges, n)
-        return self.findHamiltonianPaths(graph, n)
+        return self.findHamiltonianPaths(graph, n, num_paths_per_nodes)
         
-    def hamiltonianPaths(self, graph, v, visited, path, n):
- 
+    def hamiltonianPaths(self, graph, v, visited, path, n, N=None):
+        if self._stop_flag:
+            return
+        
         # if all the vertices are visited, then the Hamiltonian path exists
         if len(path) == n:
             # print the Hamiltonian path
-            self._paths.append(deepcopy(path))
+            init_node = path[0]
+            self._paths[init_node].append(deepcopy(path))
+            if N and len(self._paths[init_node])>=N:
+#                 print(self._paths[0], len(self._paths[0]),N)
+                self._stop_flag = True
             return
 
         # Check if every edge starting from vertex `v` leads to a solution or not
@@ -44,17 +57,17 @@ class HamiltonianPathGenerator:
                 path.append(w)
 
                 # check if adding vertex `w` to the path leads to the solution or not
-                self.hamiltonianPaths(graph, w, visited, path, n)
+                self.hamiltonianPaths(graph, w, visited, path, n, N)
 
                 # backtrack
                 visited[w] = False
                 path.pop()
-                
-    def findHamiltonianPaths(self, graph, n):
-
+    
+    def findHamiltonianPaths(self, graph, n, num_paths_per_nodes=None):
         # start with every node
         for start in range(n):
-
+            self._stop_flag = False # continue finding if changed node
+            
             # add starting node to the path
             path = [start]
 
@@ -62,8 +75,8 @@ class HamiltonianPathGenerator:
             visited = [False] * n
             visited[start] = True
 
-            self.hamiltonianPaths(graph, start, visited, path, n)
-        return self._paths
+            self.hamiltonianPaths(graph, start, visited, path, n, N=num_paths_per_nodes)
+        return reduce(lambda x, y: x+y, self._paths) # concat list of per node path list into single list
       
 def create_2d_graph(m, n, add_diag_edges=True, draw=False):
     G = nx.grid_2d_graph(m, n)
@@ -85,12 +98,15 @@ def create_2d_graph(m, n, add_diag_edges=True, draw=False):
         nx.draw(G, pos, node_size=0, with_labels=False)
     return G
    
-def create_2d_connected_sequences(m, n, diag_neighbors=True, seed=0):
+def create_2d_connected_sequences(m, n, diag_neighbors=True, seed=0, num_paths=None):
     G = create_2d_graph(m, n, add_diag_edges=diag_neighbors)
     Gi = nx.convert_node_labels_to_integers(G, ordering = 'sorted', label_attribute = 'origin' )
-
+    num_nodes = len(Gi.nodes)
+    
+    num_paths_per_nodes = num_paths//num_nodes+1
+    
     HPG = HamiltonianPathGenerator()
-    paths = HPG(Gi.edges, len(Gi.nodes))
+    paths = HPG(Gi.edges, num_nodes, num_paths_per_nodes)
     
     node_pos = list(G.nodes)
     arrs = []
@@ -103,4 +119,4 @@ def create_2d_connected_sequences(m, n, diag_neighbors=True, seed=0):
 
     rng = np.random.default_rng(seed)
     rng.shuffle(arrs)
-    return np.stack(arrs) 
+    return np.stack(arrs)[:num_paths]
