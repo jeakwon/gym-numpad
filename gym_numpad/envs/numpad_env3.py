@@ -171,7 +171,7 @@ class NumPadEnv(gym.Env):
 
     @staticmethod
     def create_numpads(
-        n_maps: int = 1,
+        n_maps: int,
         shape: Tuple[int, int],
         cues: List[Union[int, float, str]],
         seed: Optional[int] = None,
@@ -212,7 +212,7 @@ class NumPadEnv(gym.Env):
     
     @staticmethod
     def create_hamiltonian_numpads(
-        n_maps: int = 1,
+        n_maps: int,
         shape: Tuple[int, int],
         cues: List[Union[int, float, str]],
         seed: Optional[int] = None,
