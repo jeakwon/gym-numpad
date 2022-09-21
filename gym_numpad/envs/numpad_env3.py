@@ -24,6 +24,7 @@ class NumPadEnv(gym.Env):
         neighbor_sequence: bool = True,
         diag_neighbors = False, 
         custom_maps: Optional[List] = None,
+        seed: int = 0,
     ):
         self.tile_size = 2 * size - 1
         self.screen_dim = 400
@@ -184,13 +185,15 @@ class NumPadEnv(gym.Env):
         :returns: numpad, [4 x W x H]
         """
         numpads = []
-        for i in range(n_maps):
-            I, J = shape  # reward distribution
-            H, W = I * 2 - 1, J * 2 - 1  # map size
-            n_rwds = I * J
-            n_cues = H * W
 
-            rng = np.random.default_rng(seed)
+        I, J = shape  # reward distribution
+        H, W = I * 2 - 1, J * 2 - 1  # map size
+        n_rwds = I * J
+        n_cues = H * W
+
+        rng = np.random.default_rng(seed)
+        
+        for i in range(n_maps):
             cues = rng.choice(cues, size=(n_cues,), replace=len(cues) < n_cues)
             rwds = [(2 * i, 2 * j) for i in range(I) for j in range(J)]
             seqs = rng.permutation(range(1, n_rwds + 1))
@@ -226,14 +229,16 @@ class NumPadEnv(gym.Env):
         :returns: numpad, [4 x W x H]
         """
         numpads = []
+        
+        I, J = shape  # reward distribution
+        H, W = I * 2 - 1, J * 2 - 1  # map size
+        n_rwds = I * J
+        n_cues = H * W
+
+        rng = np.random.default_rng(seed)
+
         all_seqs = create_2d_connected_sequences(I, J, diag_neighbors=diag_neighbors, seed=seed, num_paths=n_maps)        
         for i in range(n_maps):
-            I, J = shape  # reward distribution
-            H, W = I * 2 - 1, J * 2 - 1  # map size
-            n_rwds = I * J
-            n_cues = H * W
-
-            rng = np.random.default_rng(seed)
            
             cues = rng.choice(cues, size=(n_cues,), replace=len(cues) < n_cues)
             rwds = [(2 * i, 2 * j) for i in range(I) for j in range(J)]
@@ -416,11 +421,7 @@ class NumPad4x4(NumPadEnv):
             **kwargs,
         )
 
-
 if __name__ == "__main__":
-    from sb3_contrib import RecurrentPPO
-    from stable_baselines3.common.env_util import make_vec_env
-
     # Parallel environments
     n_envs = 4
     from sb3_contrib import RecurrentPPO
@@ -429,9 +430,9 @@ if __name__ == "__main__":
     # Parallel environments
     n_envs = 4
     # map_ = NumPadEnv.create_numpad(shape=(3, 3), cues=range(10))
-    env = make_vec_env(NumPad3x3, n_envs=n_envs)
+    env = make_vec_env(NumPad3x3, n_envs=n_envs, env_kwargs=dict(n_maps=3, diag_neighbors=False, cues=range(10)))
     model = RecurrentPPO("MlpLstmPolicy", env, verbose=1)
-    # model.learn(total_timesteps=1000)
+    model.learn(total_timesteps=1000_000)
     # model.save("rppo_numpad2x2_test")
 
     # del model  # remove to demonstrate saving and loading
@@ -447,6 +448,6 @@ if __name__ == "__main__":
             obs, state=lstm_states, episode_start=episode_starts, deterministic=False
         )
         obs, rewards, dones, info = env.step(action)
+        print(info)
         episode_starts = dones
         env.render()
-
