@@ -44,13 +44,11 @@ class NumPadEnv(gym.Env):
             self.maps = custom_maps
         else:
             if neighbor_sequence:
-                self.maps = [
-                    self.create_hamiltonian_numpad(shape=(size, size), cues=cues, diag_neighbors=diag_neighbors, seed=seed) for seed in range(n_maps)
-                ]
+                self.maps = self.create_hamiltonian_numpads(n_maps=n_maps, shape=(size, size), cues=cues, diag_neighbors=diag_neighbors, seed=seed) for seed in range(n_maps)
+
             else:
-                self.maps = [
-                    self.create_numpad(shape=(size, size), cues=cues, seed=seed) for seed in range(n_maps)
-                ]
+                self.maps = self.create_numpads(n_maps=n_maps, shape=(size, size), cues=cues, seed=seed) for seed in range(n_maps)
+
 
         self.action_space = spaces.Discrete(5)
         self.observation_space = spaces.MultiDiscrete([len(cues), 2, 3])
@@ -172,7 +170,8 @@ class NumPadEnv(gym.Env):
         return [action not in self.invalid_actions for action in self.possible_actions]
 
     @staticmethod
-    def create_numpad(
+    def create_numpads(
+        n_maps: int = 1,
         shape: Tuple[int, int],
         cues: List[Union[int, float, str]],
         seed: Optional[int] = None,
@@ -184,29 +183,36 @@ class NumPadEnv(gym.Env):
 
         :returns: numpad, [4 x W x H]
         """
-        I, J = shape  # reward distribution
-        H, W = I * 2 - 1, J * 2 - 1  # map size
-        n_rwds = I * J
-        n_cues = H * W
+        numpads = []
+        for i in range(n_maps):
+            I, J = shape  # reward distribution
+            H, W = I * 2 - 1, J * 2 - 1  # map size
+            n_rwds = I * J
+            n_cues = H * W
 
-        rng = np.random.default_rng(seed)
-        cues = rng.choice(cues, size=(n_cues,), replace=len(cues) < n_cues)
-        rwds = [(2 * i, 2 * j) for i in range(I) for j in range(J)]
-        seqs = rng.permutation(range(1, n_rwds + 1))
+            rng = np.random.default_rng(seed)
+            cues = rng.choice(cues, size=(n_cues,), replace=len(cues) < n_cues)
+            rwds = [(2 * i, 2 * j) for i in range(I) for j in range(J)]
+            seqs = rng.permutation(range(1, n_rwds + 1))
 
-        pos_layer = np.zeros(shape=(H, W), dtype=object)
-        cue_layer = cues.reshape(H, W)
-        rwd_layer = np.zeros(shape=(H, W), dtype=object)
-        seq_layer = np.zeros(shape=(H, W), dtype=object)
+            pos_layer = np.zeros(shape=(H, W), dtype=object)
+            cue_layer = cues.reshape(H, W)
+            rwd_layer = np.zeros(shape=(H, W), dtype=object)
+            seq_layer = np.zeros(shape=(H, W), dtype=object)
 
-        for (h, w), seq in zip(rwds, seqs):
-            rwd_layer[h, w] = 1
-            seq_layer[h, w] = seq
-
-        return np.stack([pos_layer, cue_layer, rwd_layer, seq_layer])
-
+            for (h, w), seq in zip(rwds, seqs):
+                rwd_layer[h, w] = 1
+                seq_layer[h, w] = seq
+            
+            numpad = np.stack([pos_layer, cue_layer, rwd_layer, seq_layer])
+            
+            numpads.append(numpad)
+        
+        return numpads
+    
     @staticmethod
-    def create_hamiltonian_numpad(
+    def create_hamiltonian_numpads(
+        n_maps: int = 1,
         shape: Tuple[int, int],
         cues: List[Union[int, float, str]],
         seed: Optional[int] = None,
@@ -219,29 +225,33 @@ class NumPadEnv(gym.Env):
 
         :returns: numpad, [4 x W x H]
         """
-        I, J = shape  # reward distribution
-        H, W = I * 2 - 1, J * 2 - 1  # map size
-        n_rwds = I * J
-        n_cues = H * W
+        numpads = []
+        all_seqs = create_2d_connected_sequences(I, J, diag_neighbors=diag_neighbors, seed=seed, num_paths=n_maps)        
+        for i in range(n_maps):
+            I, J = shape  # reward distribution
+            H, W = I * 2 - 1, J * 2 - 1  # map size
+            n_rwds = I * J
+            n_cues = H * W
+
+            rng = np.random.default_rng(seed)
+           
+            cues = rng.choice(cues, size=(n_cues,), replace=len(cues) < n_cues)
+            rwds = [(2 * i, 2 * j) for i in range(I) for j in range(J)]
+            seqs = all_seqs[i].flatten()
+
+            pos_layer = np.zeros(shape=(H, W), dtype=object)
+            cue_layer = cues.reshape(H, W)
+            rwd_layer = np.zeros(shape=(H, W), dtype=object)
+            seq_layer = np.zeros(shape=(H, W), dtype=object)
+
+            for (h, w), seq in zip(rwds, seqs):
+                rwd_layer[h, w] = 1
+                seq_layer[h, w] = seq
+            numpad = np.stack([pos_layer, cue_layer, rwd_layer, seq_layer])
+            
+            numpads.append(numpad)
         
-        rng = np.random.default_rng(seed)
-        all_seqs = create_2d_connected_sequences(I, J, diag_neighbors=diag_neighbors, seed=seed)
-        idx = rng.integers(len(all_seqs))
-        
-        seqs = all_seqs[idx].flatten()
-        cues = rng.choice(cues, size=(n_cues,), replace=len(cues) < n_cues)
-        rwds = [(2 * i, 2 * j) for i in range(I) for j in range(J)]
-
-        pos_layer = np.zeros(shape=(H, W), dtype=object)
-        cue_layer = cues.reshape(H, W)
-        rwd_layer = np.zeros(shape=(H, W), dtype=object)
-        seq_layer = np.zeros(shape=(H, W), dtype=object)
-
-        for (h, w), seq in zip(rwds, seqs):
-            rwd_layer[h, w] = 1
-            seq_layer[h, w] = seq
-
-        return np.stack([pos_layer, cue_layer, rwd_layer, seq_layer])
+        return numpads
     
     @staticmethod
     def map_sanity_check(map_):
